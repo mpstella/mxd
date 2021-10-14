@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"mxd/gcloudutils"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,8 +14,7 @@ var (
 	functionName  string
 	configPath    string
 	sourcePath    string
-	gcloudArgs    []string
-	gCloudCommand *GcloudCommand
+	gCloudCommand *gcloudutils.GcloudCommand
 )
 
 func init() {
@@ -28,12 +28,8 @@ func init() {
 	deployCommand.Flags().StringVarP(&configPath, "config", "c", "", "path to the configuration")
 	deployCommand.Flags().StringVarP(&sourcePath, "source", "s", "", "path to the source")
 
-	for _, req := range []string{"name", "config"} {
-		err := deployCommand.MarkFlagRequired(req)
-		if err != nil {
-			panic(err)
-		}
-	}
+	_ = deployCommand.MarkFlagRequired("name")
+	_ = deployCommand.MarkFlagRequired("config")
 }
 
 var functionsCmd = &cobra.Command{
@@ -51,7 +47,7 @@ var listCommand = &cobra.Command{
 	Args:  cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 
-		err := NewGcloudCommand("functions", "list").Run()
+		err := gcloudutils.NewGcloudCommand("functions", "list").Run()
 
 		if err != nil {
 			fmt.Printf("an error occurred %s\n", err.Error())
@@ -83,7 +79,8 @@ var deployCommand = &cobra.Command{
 				panic(err)
 			}
 
-			gCloudCommand = NewGcloudCommand("functions", "deploy")
+			gCloudCommand = gcloudutils.NewGcloudCommand("functions", "deploy", functionName)
+			gCloudCommand.Verbose = Verbose
 			gCloudCommand.AddListMapping("opts")
 			gCloudCommand.AddMapMapping("update-labels", "set-build-env-vars", "update-build-env-vars")
 			gCloudCommand.AddMapListMapping("remove-labels", "remove-env-vars")
@@ -100,6 +97,9 @@ var deployCommand = &cobra.Command{
 		var a []string
 
 		if sourcePath != "" {
+			if Verbose {
+				fmt.Printf("Adding source: %s\n", sourcePath)
+			}
 			a = append(args, fmt.Sprintf("--source=%s", sourcePath))
 		}
 

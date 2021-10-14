@@ -1,0 +1,13 @@
+{
+  "region": "australia-southeast1",
+  "entry-point": "hello_http",
+  "runtime": "python39",
+  "opts": [
+    "allow-unauthenticated",
+    "trigger-http"
+  ],
+  "update-labels": {
+    "deployed_by": "mxd",
+    "deployed_on": "yyyy-mm-dd"
+  }
+}
