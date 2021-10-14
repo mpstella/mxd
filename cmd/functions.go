@@ -61,7 +61,7 @@ var listCommand = &cobra.Command{
 }
 
 var deployCommand = &cobra.Command{
-	Use:   "deploy <function-name> <function-config>",
+	Use:   "deploy <function-name> <function-config> <source>",
 	Short: "Deploy a function",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 

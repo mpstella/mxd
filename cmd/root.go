@@ -9,8 +9,8 @@ var Verbose bool
 
 var rootCmd = &cobra.Command{
 	Use:   "mxd",
-	Short: "Vlad the Deployer",
-	Long:  `Vlad is a gcloud wrapper that allows options to be JSON.`,
+	Short: "Mx Deploy",
+	Long:  `mxd is a gcloud wrapper that allows options to be JSON.`,
 }
 
 // Execute executes the root command.
