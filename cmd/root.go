@@ -20,12 +20,10 @@ func Execute() error {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-
 	rootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "verbose output")
-
 }
 
 func initConfig() {
-	viper.SetEnvPrefix("VLAD")
+	viper.SetEnvPrefix("MXD")
 	viper.AutomaticEnv()
 }
