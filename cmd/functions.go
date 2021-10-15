@@ -3,18 +3,15 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"mxd/gcloudutils"
+	"mxd/internal/gcloud"
 	"os"
-	"path/filepath"
-	"strings"
 )
 
 var (
 	functionName  string
 	configPath    string
 	sourcePath    string
-	gCloudCommand *gcloudutils.GcloudCommand
+	gCloudCommand *gcloud.Command
 )
 
 func init() {
@@ -42,61 +39,44 @@ mxd functions deploy
 }
 
 var listCommand = &cobra.Command{
-	Use:   "list",
-	Short: "List functions",
-	Args:  cobra.ExactArgs(0),
-	Run: func(cmd *cobra.Command, args []string) {
-
-		err := gcloudutils.NewGcloudCommand("functions", "list").Run()
-
-		if err != nil {
-			fmt.Printf("an error occurred %s\n", err.Error())
-			os.Exit(1)
-		}
+	Use:     "list",
+	Short:   "List functions",
+	Aliases: []string{"ls"},
+	Args:    cobra.ExactArgs(0),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return gcloud.NewCommand("functions", "list").Run()
 	},
 }
 
 var deployCommand = &cobra.Command{
-	Use:   "deploy <function-name> <function-config> <source>",
-	Short: "Deploy a function",
+	Use:     "deploy <function-name> <function-config> <source>",
+	Short:   "Deploy a function",
+	Aliases: []string{"dep"},
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 
-		if configPath != "" {
+		gcloud.Verbose = Verbose
 
-			abs, err := filepath.Abs(configPath)
+		if Beta { // preference beta over alpha if user has defined both
+			gcloud.SetBeta()
+		} else if Alpha {
+			gcloud.SetAlpha()
+		}
 
-			if err != nil {
-				panic(err)
-			}
+		gCloudCommand = gcloud.NewCommand("functions", "deploy", functionName)
 
-			base := filepath.Base(abs)
-			path := filepath.Dir(abs)
+		gCloudCommand.AddListMapping("opts").
+			AddMapMapping("update-labels", "set-build-env-vars", "update-build-env-vars").
+			AddMapListMapping("remove-labels", "remove-env-vars")
 
-			viper.SetConfigName(strings.Split(base, ".")[0])
-			viper.AddConfigPath(path)
+		err := gCloudCommand.ReadConfig(configPath)
 
-			if err := viper.ReadInConfig(); err != nil {
-				panic(err)
-			}
+		if err != nil {
+			fmt.Printf("An error occurred: %s\n", err.Error())
+			os.Exit(1)
+		}
 
-			gCloudCommand = gcloudutils.NewGcloudCommand("functions", "deploy", functionName)
-
-			if Beta { // preference beta over alpha if user has defined both
-				gCloudCommand.UseBeta()
-			} else if Aplha {
-				gCloudCommand.UseAlpha()
-			}
-
-			gCloudCommand.Verbose = Verbose
-			gCloudCommand.AddListMapping("opts")
-			gCloudCommand.AddMapMapping("update-labels", "set-build-env-vars", "update-build-env-vars")
-			gCloudCommand.AddMapListMapping("remove-labels", "remove-env-vars")
-
-			gCloudCommand.ViperBuild()
-
-			if Verbose {
-				gCloudCommand.Debug()
-			}
+		if Verbose {
+			gCloudCommand.Debug()
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -104,9 +84,6 @@ var deployCommand = &cobra.Command{
 		var a []string
 
 		if sourcePath != "" {
-			if Verbose {
-				fmt.Printf("Adding source: %s\n", sourcePath)
-			}
 			a = append(args, fmt.Sprintf("--source=%s", sourcePath))
 		}
 
