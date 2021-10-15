@@ -1,4 +1,4 @@
-package gcloudutils
+package gcloud
 
 import (
 	"fmt"
@@ -6,15 +6,15 @@ import (
 	"strings"
 )
 
-type GcloudMapListArg struct {
+type MapListArg struct {
 	Name string
 }
 
-func NewMapListArg(name string) *GcloudMapListArg {
-	return &GcloudMapListArg{name}
+func NewMapListArg(name string) *MapListArg {
+	return &MapListArg{name}
 }
 
-func (o GcloudMapListArg) ViperGet() []string {
+func (o MapListArg) ViperGet() []string {
 	return []string{
 		fmt.Sprintf("--%s=[%s]", o.Name, strings.Join(viper.GetStringSlice(o.Name), ",")),
 	}

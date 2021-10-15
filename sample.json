@@ -1,7 +1,7 @@
 {
   "region": "australia-southeast1",
   "entry-point": "hello_http",
-  "runtime": "python39",
+  "runtimeX": "python39",
   "opts": [
     "allow-unauthenticated",
     "trigger-http"
