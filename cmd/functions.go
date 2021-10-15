@@ -80,6 +80,13 @@ var deployCommand = &cobra.Command{
 			}
 
 			gCloudCommand = gcloudutils.NewGcloudCommand("functions", "deploy", functionName)
+
+			if Beta { // preference beta over alpha if user has defined both
+				gCloudCommand.UseBeta()
+			} else if Aplha {
+				gCloudCommand.UseAlpha()
+			}
+
 			gCloudCommand.Verbose = Verbose
 			gCloudCommand.AddListMapping("opts")
 			gCloudCommand.AddMapMapping("update-labels", "set-build-env-vars", "update-build-env-vars")

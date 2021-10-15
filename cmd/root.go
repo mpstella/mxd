@@ -6,6 +6,8 @@ import (
 )
 
 var Verbose bool
+var Aplha bool
+var Beta bool
 
 var rootCmd = &cobra.Command{
 	Use:   "mxd",
@@ -21,6 +23,8 @@ func Execute() error {
 func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "verbose output")
+	rootCmd.PersistentFlags().BoolVar(&Aplha, "alpha", false, "use gcloud alpha")
+	rootCmd.PersistentFlags().BoolVar(&Beta, "beta", false, "use gcloud beta")
 }
 
 func initConfig() {

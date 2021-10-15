@@ -17,6 +17,7 @@ type GcloudCommand struct {
 	Arguments []*GcloudArgument
 	mapping   map[string]GcloudArgument
 	Verbose   bool
+	Component string
 }
 
 func NewGcloudCommand(app ...string) *GcloudCommand {
@@ -24,7 +25,16 @@ func NewGcloudCommand(app ...string) *GcloudCommand {
 		make([]*GcloudArgument, 0, 10),
 		make(map[string]GcloudArgument),
 		false,
+		"",
 	}
+}
+
+func (g *GcloudCommand) UseAlpha() {
+	g.Component = "alpha"
+}
+
+func (g *GcloudCommand) UseBeta() {
+	g.Component = "beta"
 }
 
 func (g *GcloudCommand) AddStringMapping(args ...string) {
@@ -86,6 +96,10 @@ func (g *GcloudCommand) Debug() {
 func (g *GcloudCommand) Run(args ...string) error {
 
 	cmd := make([]string, 0, 10)
+
+	if g.Component != "" {
+		cmd = append(cmd, g.Component)
+	}
 
 	cmd = append(cmd, g.App...)
 	cmd = append(cmd, args...)
