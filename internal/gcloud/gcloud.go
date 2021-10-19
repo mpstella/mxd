@@ -10,7 +10,7 @@ import (
 )
 
 type Argument interface {
-	ViperGet() []string
+	viperGet(v *viper.Viper) []string
 }
 
 var Verbose = false
@@ -19,6 +19,7 @@ type Command struct {
 	app       []string
 	arguments []*Argument
 	mapping   map[string]Argument
+	viper     *viper.Viper
 }
 
 var component = ""
@@ -35,28 +36,47 @@ func NewCommand(app ...string) *Command {
 	return &Command{app,
 		make([]*Argument, 0, 10),
 		make(map[string]Argument),
+		viper.New(),
 	}
 }
 
-func (g *Command) ReadConfig(configPath string) error {
+func (g *Command) getViper(configPath string) error {
 
 	abs, err := filepath.Abs(configPath)
 
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	base := filepath.Base(abs)
 	path := filepath.Dir(abs)
 
-	viper.SetConfigName(strings.Split(base, ".")[0])
-	viper.AddConfigPath(path)
+	g.viper.SetConfigName(strings.Split(base, ".")[0])
+	g.viper.AddConfigPath(path)
 
-	if err = viper.ReadInConfig(); err != nil {
+	if err = g.viper.ReadInConfig(); err != nil {
 		return err
 	}
 
-	g.viperBuild()
+	return nil
+}
+
+func (g *Command) ReadConfig(configPath string) error {
+
+	err := g.getViper(configPath)
+
+	if err != nil {
+		return err
+	}
+
+	for k := range g.viper.AllSettings() {
+
+		if _, ok := g.mapping[k]; !ok {
+			g.AddStringMapping(k)
+		}
+		gco, _ := g.mapping[k]
+		g.AddArgument(&gco)
+	}
 	return nil
 }
 
@@ -93,18 +113,6 @@ func (g *Command) AddArgument(arg *Argument) *Command {
 	return g
 }
 
-func (g *Command) viperBuild() {
-
-	for k := range viper.AllSettings() {
-
-		if _, ok := g.mapping[k]; !ok {
-			g.AddStringMapping(k)
-		}
-		gco, _ := g.mapping[k]
-		g.AddArgument(&gco)
-	}
-}
-
 func (g *Command) Debug() {
 
 	fmt.Println("========== GcloudCommand ==========")
@@ -115,7 +123,7 @@ func (g *Command) Debug() {
 	fmt.Println("}")
 	fmt.Printf("CMD: %s {\n", g.app)
 	for _, arg := range g.arguments {
-		fmt.Printf("  %s\n", strings.Join((*arg).ViperGet(), " "))
+		fmt.Printf("  %s\n", strings.Join((*arg).viperGet(g.viper), " "))
 	}
 	fmt.Println("}")
 	fmt.Println("===================================")
@@ -133,7 +141,7 @@ func (g *Command) Run(args ...string) error {
 	cmd = append(cmd, args...)
 
 	for _, arg := range g.arguments {
-		cmd = append(cmd, (*arg).ViperGet()...)
+		cmd = append(cmd, (*arg).viperGet(g.viper)...)
 	}
 
 	if Verbose {

@@ -3,6 +3,7 @@ package gcloud
 import (
 	"fmt"
 	"github.com/spf13/viper"
+	"sort"
 )
 
 type ListArg struct {
@@ -13,10 +14,11 @@ func NewListArg(name string) *ListArg {
 	return &ListArg{name}
 }
 
-func (o ListArg) ViperGet() []string {
-	var opts []string
-	for _, opt := range viper.GetStringSlice(o.Name) {
-		opts = append(opts, fmt.Sprintf("--%s", opt))
+func (o ListArg) viperGet(v *viper.Viper) []string {
+	var args []string
+	for _, arg := range v.GetStringSlice(o.Name) {
+		args = append(args, fmt.Sprintf("--%s", arg))
 	}
-	return opts
+	sort.Strings(args)
+	return args
 }

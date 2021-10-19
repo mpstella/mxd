@@ -13,6 +13,6 @@ func NewStringArg(name string) *StringArg {
 	return &StringArg{name}
 }
 
-func (o StringArg) ViperGet() []string {
-	return []string{fmt.Sprintf("--%s=%s", o.Name, viper.GetString(o.Name))}
+func (o StringArg) viperGet(v *viper.Viper) []string {
+	return []string{fmt.Sprintf("--%s=%s", o.Name, v.GetString(o.Name))}
 }
