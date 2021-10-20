@@ -3,6 +3,7 @@ package gcloud
 import (
 	"fmt"
 	"github.com/spf13/viper"
+	"sort"
 	"strings"
 )
 
@@ -14,13 +15,18 @@ func NewMapArg(name string) *MapArg {
 	return &MapArg{name}
 }
 
-func (o MapArg) ViperGet() []string {
-	var l []string
-	for k, v := range viper.GetStringMapString(o.Name) {
-		l = append(l, fmt.Sprintf("%s=%s", k, v))
+func (o MapArg) viperGet(v *viper.Viper) []string {
+
+	var args []string
+	for k, v := range v.GetStringMapString(o.Name) {
+		args = append(args, fmt.Sprintf("%s=%s", k, v))
 	}
+
+	// create deterministic ordering - o
+	sort.Strings(args)
+
 	return []string{
 		fmt.Sprintf("--%s", o.Name),
-		strings.Join(l, ","),
+		strings.Join(args, ","),
 	}
 }

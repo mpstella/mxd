@@ -1,24 +1,26 @@
 package gcloud
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/spf13/viper"
-	"os/exec"
+	"mxd/internal"
 	"path/filepath"
 	"strings"
 )
 
 type Argument interface {
-	ViperGet() []string
+	viperGet(v *viper.Viper) []string
 }
 
 var Verbose = false
+
+const gcloudRunCommand = "gcloud"
 
 type Command struct {
 	app       []string
 	arguments []*Argument
 	mapping   map[string]Argument
+	viper     *viper.Viper
 }
 
 var component = ""
@@ -35,28 +37,47 @@ func NewCommand(app ...string) *Command {
 	return &Command{app,
 		make([]*Argument, 0, 10),
 		make(map[string]Argument),
+		viper.New(),
 	}
 }
 
-func (g *Command) ReadConfig(configPath string) error {
+func (g *Command) getViper(configPath string) error {
 
 	abs, err := filepath.Abs(configPath)
 
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	base := filepath.Base(abs)
 	path := filepath.Dir(abs)
 
-	viper.SetConfigName(strings.Split(base, ".")[0])
-	viper.AddConfigPath(path)
+	g.viper.SetConfigName(strings.Split(base, ".")[0])
+	g.viper.AddConfigPath(path)
 
-	if err = viper.ReadInConfig(); err != nil {
+	if err = g.viper.ReadInConfig(); err != nil {
 		return err
 	}
 
-	g.viperBuild()
+	return nil
+}
+
+func (g *Command) ReadConfig(configPath string) error {
+
+	err := g.getViper(configPath)
+
+	if err != nil {
+		return err
+	}
+
+	for k := range g.viper.AllSettings() {
+
+		if _, ok := g.mapping[k]; !ok {
+			g.AddStringMapping(k)
+		}
+		gco, _ := g.mapping[k]
+		g.AddArgument(&gco)
+	}
 	return nil
 }
 
@@ -93,18 +114,6 @@ func (g *Command) AddArgument(arg *Argument) *Command {
 	return g
 }
 
-func (g *Command) viperBuild() {
-
-	for k := range viper.AllSettings() {
-
-		if _, ok := g.mapping[k]; !ok {
-			g.AddStringMapping(k)
-		}
-		gco, _ := g.mapping[k]
-		g.AddArgument(&gco)
-	}
-}
-
 func (g *Command) Debug() {
 
 	fmt.Println("========== GcloudCommand ==========")
@@ -115,7 +124,7 @@ func (g *Command) Debug() {
 	fmt.Println("}")
 	fmt.Printf("CMD: %s {\n", g.app)
 	for _, arg := range g.arguments {
-		fmt.Printf("  %s\n", strings.Join((*arg).ViperGet(), " "))
+		fmt.Printf("  %s\n", strings.Join((*arg).viperGet(g.viper), " "))
 	}
 	fmt.Println("}")
 	fmt.Println("===================================")
@@ -123,40 +132,24 @@ func (g *Command) Debug() {
 
 func (g *Command) Run(args ...string) error {
 
-	cmd := make([]string, 0, 10)
+	runCommand := make([]string, 0, 10)
 
 	if component != "" {
-		cmd = append(cmd, component)
+		runCommand = append(runCommand, component)
 	}
 
-	cmd = append(cmd, g.app...)
-	cmd = append(cmd, args...)
+	runCommand = append(runCommand, g.app...)
+	runCommand = append(runCommand, args...)
 
 	for _, arg := range g.arguments {
-		cmd = append(cmd, (*arg).ViperGet()...)
+		runCommand = append(runCommand, (*arg).viperGet(g.viper)...)
 	}
 
 	if Verbose {
-		fmt.Println(cmd)
+		fmt.Println(runCommand)
 	}
 
-	shellCmd := exec.Command("gcloud", cmd...)
-	var stdOut, stdErr bytes.Buffer
-	shellCmd.Stdout = &stdOut
-	shellCmd.Stderr = &stdErr
+	_, _, err := internal.RunShellCommand(gcloudRunCommand, runCommand...)
 
-	if err := shellCmd.Run(); err != nil {
-		fmt.Printf("An error has occurred with %s\n", err)
-
-		for _, s := range strings.Split(stdErr.String(), "\n") {
-			fmt.Println(s)
-		}
-		return err
-	}
-
-	for _, s := range strings.Split(stdOut.String(), "\n") {
-		fmt.Println(s)
-	}
-
-	return nil
+	return err
 }
