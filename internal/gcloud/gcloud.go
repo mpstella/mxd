@@ -1,10 +1,9 @@
 package gcloud
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/spf13/viper"
-	"os/exec"
+	"mxd/internal"
 	"path/filepath"
 	"strings"
 )
@@ -14,6 +13,8 @@ type Argument interface {
 }
 
 var Verbose = false
+
+const gcloudRunCommand = "gcloud"
 
 type Command struct {
 	app       []string
@@ -131,40 +132,24 @@ func (g *Command) Debug() {
 
 func (g *Command) Run(args ...string) error {
 
-	cmd := make([]string, 0, 10)
+	runCommand := make([]string, 0, 10)
 
 	if component != "" {
-		cmd = append(cmd, component)
+		runCommand = append(runCommand, component)
 	}
 
-	cmd = append(cmd, g.app...)
-	cmd = append(cmd, args...)
+	runCommand = append(runCommand, g.app...)
+	runCommand = append(runCommand, args...)
 
 	for _, arg := range g.arguments {
-		cmd = append(cmd, (*arg).viperGet(g.viper)...)
+		runCommand = append(runCommand, (*arg).viperGet(g.viper)...)
 	}
 
 	if Verbose {
-		fmt.Println(cmd)
+		fmt.Println(runCommand)
 	}
 
-	shellCmd := exec.Command("gcloud", cmd...)
-	var stdOut, stdErr bytes.Buffer
-	shellCmd.Stdout = &stdOut
-	shellCmd.Stderr = &stdErr
+	_, _, err := internal.RunShellCommand(gcloudRunCommand, runCommand...)
 
-	if err := shellCmd.Run(); err != nil {
-		fmt.Printf("An error has occurred with %s\n", err)
-
-		for _, s := range strings.Split(stdErr.String(), "\n") {
-			fmt.Println(s)
-		}
-		return err
-	}
-
-	for _, s := range strings.Split(stdOut.String(), "\n") {
-		fmt.Println(s)
-	}
-
-	return nil
+	return err
 }
